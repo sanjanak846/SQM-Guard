@@ -1,8 +1,9 @@
-from app.services.sanitizer import sanitize_log_entry
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import Alert
+from app.services.sanitizer import sanitize_log_entry
+from app.services.anomaly_scorer import score_alert
 
 router = APIRouter(prefix="/alerts", tags=["alerts"])
 
@@ -39,4 +40,22 @@ def sanitize_alert(alert_id: int, db: Session = Depends(get_db)):
         "cleaned_log": result["cleaned_log"],
         "injection_flags": result["injection_flags"],
         "is_suspicious": result["is_suspicious"]
+    }
+
+@router.post("/{alert_id}/detect")
+def detect_alert(alert_id: int, db: Session = Depends(get_db)):
+    alert = db.query(Alert).filter(Alert.id == alert_id).first()
+    if not alert:
+        return {"error": "Alert not found"}
+
+    result = score_alert(alert.raw_fields)
+
+    alert.status = "anomalous" if result["is_anomaly"] else "reviewed"
+    db.commit()
+
+    return {
+        "id": alert.id,
+        "is_anomaly": result["is_anomaly"],
+        "risk_score": result["risk_score"],
+        "status": alert.status
     }
