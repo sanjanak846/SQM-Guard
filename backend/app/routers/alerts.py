@@ -1,3 +1,4 @@
+from app.services.sanitizer import sanitize_log_entry
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -23,4 +24,19 @@ def get_alert(alert_id: int, db: Session = Depends(get_db)):
         "timestamp": alert.timestamp,
         "raw_fields": alert.raw_fields,
         "status": alert.status
+    }
+
+@router.post("/{alert_id}/sanitize")
+def sanitize_alert(alert_id: int, db: Session = Depends(get_db)):
+    alert = db.query(Alert).filter(Alert.id == alert_id).first()
+    if not alert:
+        return {"error": "Alert not found"}
+
+    result = sanitize_log_entry(alert.raw_fields)
+
+    return {
+        "id": alert.id,
+        "cleaned_log": result["cleaned_log"],
+        "injection_flags": result["injection_flags"],
+        "is_suspicious": result["is_suspicious"]
     }
