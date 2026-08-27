@@ -1,9 +1,9 @@
 import re
-
+from urllib.parse import unquote
 SUSPICIOUS_PATTERNS = [
-    r"ignore (previous|above|all)?[\s+]*(instructions|everything|rules)?",
-    r"forget (all|previous|any) (security )?(rules|instructions)",
-    r"disregard (the|any) (prior|previous) (rules|instructions)",
+    r"ign[o0]re\s+(previous|prev[i1]0?us|above|all)?\s*[\s+]*(instructions?|instruct[i1]0?ns?|everything|rules)?",
+    r"forget\s+(all|previous|any)?\s*(security\s+)?(rules|instructions)",
+    r"disregard\s+(the|any|all|prior)?\s*(prior|previous)?\s*(rules|instructions)",
     r"you are now",
     r"act as (a|an)",
     r"system prompt",
@@ -12,12 +12,9 @@ SUSPICIOUS_PATTERNS = [
     r"do not (flag|alert|report)",
     r"</?(system|instruction|prompt)>",
     r"new instructions?:",
-    r"override",
-    r"system override",
+    r"system\s+override\s*:",  # only flag "override" when paired with "system" + colon (attack-style), not standalone
 ]
 
-import re
-from urllib.parse import unquote
 
 def is_suspicious(text: str) -> bool:
     if not isinstance(text, str):
