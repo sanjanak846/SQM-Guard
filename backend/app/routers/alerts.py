@@ -59,3 +59,26 @@ def detect_alert(alert_id: int, db: Session = Depends(get_db)):
         "risk_score": result["risk_score"],
         "status": alert.status
     }
+
+@router.post("/{alert_id}/process")
+def process_alert(alert_id: int, db: Session = Depends(get_db)):
+    alert = db.query(Alert).filter(Alert.id == alert_id).first()
+    if not alert:
+        return {"error": "Alert not found"}
+
+    sanitize_result = sanitize_log_entry(alert.raw_fields)
+    detection_result = score_alert(sanitize_result["cleaned_log"])
+
+    alert.status = "anomalous" if detection_result["is_anomaly"] else "reviewed"
+    db.commit()
+
+    return {
+        "id": alert.id,
+        "injection_flags": sanitize_result["injection_flags"],
+        "is_suspicious_input": sanitize_result["is_suspicious"],
+        "is_anomaly": detection_result["is_anomaly"],
+        "risk_score": detection_result["risk_score"],
+        "status": alert.status
+    }
+
+
