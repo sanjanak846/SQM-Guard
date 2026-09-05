@@ -4,3 +4,7 @@ __pycache__/
 *.pyc
 *.db
 .env
+backend/app/services/anomaly_model.pkl
+backend/app/services/scaler.pkl
+__pycache__/
+*.pyc

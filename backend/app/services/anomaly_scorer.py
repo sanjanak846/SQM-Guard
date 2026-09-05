@@ -1,4 +1,5 @@
 from pathlib import Path
+from sklearn.preprocessing import StandardScaler
 
 import joblib
 import pandas as pd
@@ -17,6 +18,7 @@ FEATURE_COLUMNS = [
 
 
 MODEL_PATH = Path(__file__).resolve().parent / "anomaly_model.pkl"
+SCALER_PATH = Path(__file__).resolve().parent / "scaler.pkl"
 
 
 def extract_features(log_entry: dict) -> list:
@@ -51,67 +53,52 @@ def load_training_data(csv_path: str) -> pd.DataFrame:
 
 
 def train_model(csv_path: str):
-    """
-    Train the Isolation Forest anomaly detection model.
-    """
-
     df = load_training_data(csv_path)
 
-    # Select the features used by the model
-    X = df[FEATURE_COLUMNS].apply(
-        pd.to_numeric,
-        errors="coerce"
-    )
-
-    # Replace missing values with 0
+    X = df[FEATURE_COLUMNS].apply(pd.to_numeric, errors="coerce")
     X = X.fillna(0)
+
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+    joblib.dump(scaler, SCALER_PATH)
 
     model = IsolationForest(
         n_estimators=100,
         contamination=0.10,
         random_state=42
     )
+    model.fit(X_scaled)
 
-    model.fit(X)
-
-    # Save trained model
     joblib.dump(model, MODEL_PATH)
 
     print("Model trained successfully.")
     print(f"Model saved to: {MODEL_PATH}")
+    print(f"Scaler saved to: {SCALER_PATH}")
 
     return model
 
-
 def score_alert(log_entry: dict) -> dict:
-    """
-    Calculate anomaly score for one security alert.
-    """
-
-    if not MODEL_PATH.exists():
+    if not MODEL_PATH.exists() or not SCALER_PATH.exists():
         raise FileNotFoundError(
-            "Anomaly model has not been trained yet."
+            "Anomaly model or scaler has not been trained yet."
         )
 
     model = joblib.load(MODEL_PATH)
+    scaler = joblib.load(SCALER_PATH)
 
     features = [extract_features(log_entry)]
+    features_scaled = scaler.transform(features)
 
-    raw_score = model.decision_function(features)[0]
+    raw_score = model.decision_function(features_scaled)[0]
+    prediction = model.predict(features_scaled)[0]
 
-    prediction = model.predict(features)[0]
-
-    # Convert model score into an easy-to-understand risk score
     risk_score = max(
         0,
-        min(
-            100,
-            round((1 - raw_score) * 50, 2)
-        )
+        min(100, round((1 - raw_score) * 50, 2))
     )
 
     return {
-       "is_anomaly": bool(prediction == -1),
-       "raw_score": float(raw_score),
-       "risk_score": float(risk_score),
+        "is_anomaly": bool(prediction == -1),
+        "raw_score": float(raw_score),
+        "risk_score": float(risk_score),
     }
