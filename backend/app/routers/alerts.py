@@ -5,6 +5,9 @@ from app.models import Alert
 from app.services.sanitizer import sanitize_log_entry
 from app.services.anomaly_scorer import score_alert
 
+from app.models import ApprovalLog
+from app.services.approval_workflow import is_valid_transition
+
 router = APIRouter(prefix="/alerts", tags=["alerts"])
 
 @router.post("/ingest")
@@ -81,4 +84,51 @@ def process_alert(alert_id: int, db: Session = Depends(get_db)):
         "status": alert.status
     }
 
+def log_transition(db: Session, alert_id: int, from_status: str, to_status: str, comment: str = None):
+    log_entry = ApprovalLog(alert_id=alert_id, from_status=from_status, to_status=to_status, comment=comment)
+    db.add(log_entry)
+    db.commit()
 
+@router.post("/{alert_id}/submit-for-review")
+def submit_for_review(alert_id: int, db: Session = Depends(get_db)):
+    alert = db.query(Alert).filter(Alert.id == alert_id).first()
+    if not alert:
+        return {"error": "Alert not found"}
+    if not is_valid_transition(alert.status, "analyst_review"):
+        return {"error": f"Cannot submit alert with status '{alert.status}' for review"}
+    old_status = alert.status
+    alert.status = "analyst_review"
+    db.commit()
+    log_transition(db, alert_id, old_status, "analyst_review")
+    return {"id": alert.id, "status": alert.status}
+
+@router.post("/{alert_id}/approve")
+def approve_alert(alert_id: int, comment: str = None, db: Session = Depends(get_db)):
+    alert = db.query(Alert).filter(Alert.id == alert_id).first()
+    if not alert:
+        return {"error": "Alert not found"}
+    if not is_valid_transition(alert.status, "approved"):
+        return {"error": f"Cannot approve an alert with status '{alert.status}'"}
+    old_status = alert.status
+    alert.status = "approved"
+    db.commit()
+    log_transition(db, alert_id, old_status, "approved", comment)
+    return {"id": alert.id, "status": alert.status}
+
+@router.post("/{alert_id}/reject")
+def reject_alert(alert_id: int, comment: str = None, db: Session = Depends(get_db)):
+    alert = db.query(Alert).filter(Alert.id == alert_id).first()
+    if not alert:
+        return {"error": "Alert not found"}
+    if not is_valid_transition(alert.status, "rejected"):
+        return {"error": f"Cannot reject an alert with status '{alert.status}'"}
+    old_status = alert.status
+    alert.status = "rejected"
+    db.commit()
+    log_transition(db, alert_id, old_status, "rejected", comment)
+    return {"id": alert.id, "status": alert.status}
+
+@router.get("/{alert_id}/history")
+def get_alert_history(alert_id: int, db: Session = Depends(get_db)):
+    logs = db.query(ApprovalLog).filter(ApprovalLog.alert_id == alert_id).all()
+    return [{"from_status": l.from_status, "to_status": l.to_status, "actor": l.actor, "timestamp": l.timestamp, "comment": l.comment} for l in logs]

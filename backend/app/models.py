@@ -10,3 +10,15 @@ class Alert(Base):
     timestamp = Column(DateTime, default=datetime.utcnow)
     raw_fields = Column(JSON)
     status = Column(String, default="pending")
+
+
+class ApprovalLog(Base):
+    __tablename__ = "approval_log"
+
+    id = Column(Integer, primary_key=True, index=True)
+    alert_id = Column(Integer)
+    from_status = Column(String)
+    to_status = Column(String)
+    actor = Column(String, default="analyst")
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    comment = Column(String, nullable=True)
