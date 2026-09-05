@@ -1,0 +1,34 @@
+[
+  {
+    "description": "Find failed login attempts by user",
+    "query": "SigninLogs | where ResultType != 0 | summarize FailedCount = count() by UserPrincipalName | where FailedCount > 3"
+  },
+  {
+    "description": "Detect successful logins from different locations",
+    "query": "SigninLogs | where ResultType == 0 | summarize by UserPrincipalName, Location"
+  },
+  {
+    "description": "Find events from a specific source IP",
+    "query": "SecurityEvent | where IpAddress == '192.168.1.10' | project TimeGenerated, Account, Activity"
+  },
+  {
+    "description": "Detect multiple failed logins in a short window",
+    "query": "SigninLogs | where ResultType != 0 | summarize Count = count() by UserPrincipalName, bin(TimeGenerated, 5m) | where Count > 5"
+  },
+  {
+    "description": "Find suspicious process activity",
+    "query": "SecurityEvent | where Activity contains 'process' | project TimeGenerated, Account, Activity"
+  },
+  {
+    "description": "Find network connection events",
+    "query": "SecurityEvent | where Activity contains 'network' | project TimeGenerated, Computer, Activity"
+  },
+  {
+    "description": "Find account-related events",
+    "query": "SecurityEvent | where Activity contains 'account' | project TimeGenerated, Account, Activity"
+  },
+  {
+    "description": "Find Azure administrative activity",
+    "query": "AzureActivity | project TimeGenerated, Caller, OperationName, ActivityStatus"
+  }
+]

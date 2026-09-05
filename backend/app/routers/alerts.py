@@ -4,6 +4,7 @@ from app.database import get_db
 from app.models import Alert
 from app.services.sanitizer import sanitize_log_entry
 from app.services.anomaly_scorer import score_alert
+from app.services.sqm_service import generate_query_with_repair
 
 from app.models import ApprovalLog
 from app.services.approval_workflow import is_valid_transition
@@ -63,9 +64,28 @@ def detect_alert(alert_id: int, db: Session = Depends(get_db)):
         "status": alert.status
     }
 
+@router.post("/{alert_id}/generate-query")
+def generate_query_endpoint(
+    alert_id: int,
+    db: Session = Depends(get_db)
+):
+    alert = db.query(Alert).filter(Alert.id == alert_id).first()
+
+    if not alert:
+        return {"error": "Alert not found"}
+
+    result = generate_query_with_repair(alert.raw_fields)
+
+    return {
+        "id": alert.id,
+        **result
+    }
+
+
 @router.post("/{alert_id}/process")
 def process_alert(alert_id: int, db: Session = Depends(get_db)):
     alert = db.query(Alert).filter(Alert.id == alert_id).first()
+
     if not alert:
         return {"error": "Alert not found"}
 
@@ -132,3 +152,4 @@ def reject_alert(alert_id: int, comment: str = None, db: Session = Depends(get_d
 def get_alert_history(alert_id: int, db: Session = Depends(get_db)):
     logs = db.query(ApprovalLog).filter(ApprovalLog.alert_id == alert_id).all()
     return [{"from_status": l.from_status, "to_status": l.to_status, "actor": l.actor, "timestamp": l.timestamp, "comment": l.comment} for l in logs]
+
