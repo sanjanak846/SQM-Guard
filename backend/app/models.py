@@ -22,3 +22,12 @@ class ApprovalLog(Base):
     actor = Column(String, default="analyst")
     timestamp = Column(DateTime, default=datetime.utcnow)
     comment = Column(String, nullable=True)
+
+class Resolution(Base):
+    __tablename__ = "resolutions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    alert_id = Column(Integer)
+    risk_score = Column(Integer)
+    resolution_category = Column(String)
+    justification = Column(String)
