@@ -1,17 +1,17 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models import Alert
+from app.models import Alert, Resolution
 from app.services.sanitizer import sanitize_log_entry
 from app.services.anomaly_scorer import score_alert
 from app.services.sqm_service import generate_query_with_repair
 from app.services.risk_scoring import calculate_risk_score
 from app.services.resolution_service import generate_resolution
-from app.models import Resolution
 from app.models import ApprovalLog
 from app.services.approval_workflow import is_valid_transition
 
 router = APIRouter(prefix="/alerts", tags=["alerts"])
+
 @router.get("/")
 def list_alerts(db: Session = Depends(get_db)):
     alerts = db.query(Alert).all()
@@ -167,8 +167,6 @@ def reject_alert(alert_id: int, comment: str = None, db: Session = Depends(get_d
 def get_alert_history(alert_id: int, db: Session = Depends(get_db)):
     logs = db.query(ApprovalLog).filter(ApprovalLog.alert_id == alert_id).all()
     return [{"from_status": l.from_status, "to_status": l.to_status, "actor": l.actor, "timestamp": l.timestamp, "comment": l.comment} for l in logs]
-
-
 
 
 @router.post("/{alert_id}/resolve")
