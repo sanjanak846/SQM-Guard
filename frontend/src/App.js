@@ -1,24 +1,22 @@
-import logo from './logo.svg';
-import './App.css';
+import React from "react";
+import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
+import AlertQueue from "./pages/AlertQueue";
+import AlertDetail from "./pages/AlertDetail";
+import CampaignView from "./pages/CampaignView";
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <BrowserRouter>
+      <nav style={{ padding: "15px", background: "#2c3e50" }}>
+        <Link to="/" style={{ color: "white", marginRight: "20px" }}>Alert Queue</Link>
+        <Link to="/campaigns" style={{ color: "white" }}>Campaigns</Link>
+      </nav>
+      <Routes>
+        <Route path="/" element={<AlertQueue />} />
+        <Route path="/alerts/:id" element={<AlertDetail />} />
+        <Route path="/campaigns" element={<CampaignView />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 

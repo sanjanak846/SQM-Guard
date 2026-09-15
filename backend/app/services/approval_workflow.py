@@ -1,7 +1,8 @@
+
 VALID_TRANSITIONS = {
     "pending": ["analyst_review"],
-    "anomalous": ["analyst_review"],
-    "reviewed": ["analyst_review"],
+    "anomalous": ["analyst_review", "approved", "rejected"],
+    "reviewed": ["analyst_review", "approved", "rejected"],
     "analyst_review": ["approved", "rejected"],
     "approved": ["closed"],
     "rejected": ["closed"],

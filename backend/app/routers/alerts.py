@@ -5,11 +5,26 @@ from app.models import Alert
 from app.services.sanitizer import sanitize_log_entry
 from app.services.anomaly_scorer import score_alert
 from app.services.sqm_service import generate_query_with_repair
-
+from app.services.risk_scoring import calculate_risk_score
+from app.services.resolution_service import generate_resolution
+from app.models import Resolution
 from app.models import ApprovalLog
 from app.services.approval_workflow import is_valid_transition
 
 router = APIRouter(prefix="/alerts", tags=["alerts"])
+@router.get("/")
+def list_alerts(db: Session = Depends(get_db)):
+    alerts = db.query(Alert).all()
+    return [
+        {
+            "id": a.id,
+            "timestamp": a.timestamp,
+            "status": a.status,
+            "risk_score": getattr(a, "risk_score", None),
+            "raw_fields": a.raw_fields,
+        }
+        for a in alerts
+    ]
 
 @router.post("/ingest")
 def ingest_alert(log_data: dict, db: Session = Depends(get_db)):
@@ -153,3 +168,38 @@ def get_alert_history(alert_id: int, db: Session = Depends(get_db)):
     logs = db.query(ApprovalLog).filter(ApprovalLog.alert_id == alert_id).all()
     return [{"from_status": l.from_status, "to_status": l.to_status, "actor": l.actor, "timestamp": l.timestamp, "comment": l.comment} for l in logs]
 
+
+
+
+@router.post("/{alert_id}/resolve")
+def resolve_alert(alert_id: int, db: Session = Depends(get_db)):
+    alert = db.query(Alert).filter(Alert.id == alert_id).first()
+    if not alert:
+        return {"error": "Alert not found"}
+
+    sanitize_result = sanitize_log_entry(alert.raw_fields)
+    anomaly_result = score_alert(sanitize_result["cleaned_log"])
+    query_result = generate_query_with_repair(sanitize_result["cleaned_log"])
+
+    risk_data = calculate_risk_score(anomaly_result, sanitize_result, query_result)
+    resolution = generate_resolution(alert.raw_fields, risk_data, query_result.get("final_query", ""))
+
+    alert.risk_score = int(risk_data["final_risk_score"])
+    alert.status = "anomalous" if anomaly_result["is_anomaly"] else "reviewed"
+    db.commit()
+
+    resolution_entry = Resolution(
+        alert_id=alert_id,
+        risk_score=risk_data["final_risk_score"],
+        resolution_category=resolution["category"],
+        justification=resolution["justification"]
+    )
+    db.add(resolution_entry)
+    db.commit()
+
+    return {
+        "id": alert.id,
+        "risk_score": risk_data["final_risk_score"],
+        "contributing_factors": risk_data["contributing_factors"],
+        "resolution": resolution
+    }

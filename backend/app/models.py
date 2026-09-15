@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, JSON
+from sqlalchemy import Column, Integer, String, DateTime, JSON, Float
 from datetime import datetime
 from app.database import Base
 
@@ -10,6 +10,7 @@ class Alert(Base):
     timestamp = Column(DateTime, default=datetime.utcnow)
     raw_fields = Column(JSON)
     status = Column(String, default="pending")
+    risk_score = Column(Integer, nullable=True)
 
 
 class ApprovalLog(Base):
@@ -22,3 +23,13 @@ class ApprovalLog(Base):
     actor = Column(String, default="analyst")
     timestamp = Column(DateTime, default=datetime.utcnow)
     comment = Column(String, nullable=True)
+
+
+class Resolution(Base):
+    __tablename__ = "resolutions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    alert_id = Column(Integer)
+    risk_score = Column(Float)
+    resolution_category = Column(String)
+    justification = Column(String)
