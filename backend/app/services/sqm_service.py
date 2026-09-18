@@ -1,11 +1,16 @@
 import json
+from pathlib import Path
+
 from app.services.query_validator import validate_query
 from app.services.llm_client import query_llm
 from app.services.rag_service import retrieve_technique
 
 
 def load_reference_queries():
-    with open("data/reference_queries.json", "r", encoding="utf-8") as f:
+    base_dir = Path(__file__).resolve().parents[2]
+    reference_file = base_dir / "data" / "reference_queries.json"
+
+    with open(reference_file, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
