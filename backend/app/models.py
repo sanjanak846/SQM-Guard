@@ -1,4 +1,7 @@
-from sqlalchemy import Column, Integer, String, DateTime, JSON, Float
+
+
+from sqlalchemy import Column, Integer, String, DateTime, JSON, Boolean
+
 from datetime import datetime
 from app.database import Base
 
@@ -7,10 +10,13 @@ class Alert(Base):
     __tablename__ = "alerts"
 
     id = Column(Integer, primary_key=True, index=True)
-    timestamp = Column(DateTime, default=datetime.utcnow)
+    timestamp = Column(DateTime, default=datetime.utcnow, index=True)
     raw_fields = Column(JSON)
-    status = Column(String, default="pending")
-    risk_score = Column(Integer, nullable=True)
+
+=======
+    status = Column(String, default="pending", index=True)
+    risk_score = Column(Integer, nullable=True, index=True)
+
 
 
 class ApprovalLog(Base):
@@ -33,3 +39,23 @@ class Resolution(Base):
     risk_score = Column(Float)
     resolution_category = Column(String)
     justification = Column(String)
+
+class InjectionFlag(Base):
+    __tablename__ = "injection_flags"
+
+    id = Column(Integer, primary_key=True, index=True)
+    alert_id = Column(Integer, index=True)
+    field_name = Column(String)
+    original_value = Column(String)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+
+
+class GeneratedQuery(Base):
+    __tablename__ = "queries"
+
+    id = Column(Integer, primary_key=True, index=True)
+    alert_id = Column(Integer, index=True)
+    generated_query = Column(String)
+    is_valid = Column(Boolean)
+    repair_attempts = Column(Integer)
+    timestamp = Column(DateTime, default=datetime.utcnow)
