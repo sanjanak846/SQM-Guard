@@ -8,7 +8,6 @@ Built as a research-grounded improvement over *"Toward Autonomous SOC Operations
 ![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688)
 ![React](https://img.shields.io/badge/React-Frontend-61DAFB)
 ![Ollama](https://img.shields.io/badge/LLM-Ollama%20(Local)-black)
-![License](https://img.shields.io/badge/License-MIT-green)
 
 ---
 
@@ -184,7 +183,3 @@ Built by **Sanjana K** and **Yuvasri S**, B.Tech CSE (Cyber Security), VIT Vello
 ## ⚠️ Disclaimer
 
 This is an academic project built for educational and portfolio purposes. It is not intended for production security use without significant further hardening, testing at scale, and professional security review.
-
-## 📄 License
-
-MIT License — see [LICENSE](LICENSE) for details.
